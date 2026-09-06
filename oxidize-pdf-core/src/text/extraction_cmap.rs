@@ -215,8 +215,7 @@ impl<R: Read + Seek> CMapTextExtractor<R> {
                 }
                 PdfObject::Stream(stream) => {
                     if let Ok(data) = stream.decode(&ParseOptions::default()) {
-                        if let Ok(enc) = crate::text::encoding_cmap::EncodingCMap::parse(&data)
-                        {
+                        if let Ok(enc) = crate::text::encoding_cmap::EncodingCMap::parse(&data) {
                             font_info.cid_encoding =
                                 Some(crate::text::encoding_cmap::CidEncoding::Cmap(enc));
                         }

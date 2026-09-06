@@ -135,7 +135,8 @@ fn glyph_name_to_unicode_comprehensive() {
 
 #[test]
 fn extract_text_with_direct_differences_encoding() {
-    let content = b"BT /F1 12 Tf 50 700 Td (\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C) Tj ET";
+    let content =
+        b"BT /F1 12 Tf 50 700 Td (\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C) Tj ET";
     let objects = vec![
         b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec(),
