@@ -4593,7 +4593,10 @@ mod tests {
         let outcome2 = append_bounded(&mut s2, Some('\n'), "threaded", None, &mut trunc, true);
         assert!(outcome2.appended);
         assert_eq!(outcome2.applied_separator, None);
-        assert_eq!(s2, "multithreaded", "soft hyphen popped for alphabetic words");
+        assert_eq!(
+            s2, "multithreaded",
+            "soft hyphen popped for alphabetic words"
+        );
     }
 
     #[test]
