@@ -5,6 +5,7 @@
 //! numeric ranges, phone numbers like "1234-" + "5678"), the hyphen is a deliberate separator and must not be stripped.
 
 use oxidize_pdf::parser::{ParseOptions, PdfReader};
+use oxidize_pdf::text::TextExtractor;
 
 fn build_pdf(content: &str) -> Vec<u8> {
     let clen = content.len();
