@@ -6,7 +6,9 @@ mod common;
 
 use common::pdf_assembler::{assemble_pdf, stream_obj};
 use oxidize_pdf::parser::{PdfDocument, PdfReader};
-use oxidize_pdf::text::{glyph_name_to_unicode, ExtractionOptions, TextExtractor};
+use oxidize_pdf::text::{
+    glyph_name_to_unicode, glyph_name_to_unicode_sequence, ExtractionOptions, TextExtractor,
+};
 use std::io::Cursor;
 
 #[test]
@@ -32,6 +34,14 @@ fn glyph_name_to_unicode_comprehensive() {
     assert_eq!(glyph_name_to_unicode("u1F600"), Some('😀'));
     assert_eq!(glyph_name_to_unicode("u000041"), Some('A'));
     assert_eq!(glyph_name_to_unicode("u2022"), Some('•'));
+
+    // AGL entries outside the previous hand-written subset and multi-scalar
+    // `uni` names must not be silently lost.
+    assert_eq!(glyph_name_to_unicode("afii10017"), Some('А'));
+    assert_eq!(
+        glyph_name_to_unicode_sequence("uni00410042").as_deref(),
+        Some("AB")
+    );
 
     // 4. AGL standard Latin glyph names
     assert_eq!(glyph_name_to_unicode("space"), Some(' '));

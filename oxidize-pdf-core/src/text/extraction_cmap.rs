@@ -11,6 +11,7 @@ use crate::text::cmap::CMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::{Read, Seek};
+use std::sync::OnceLock;
 
 /// A CIDFont's `/W` + `/DW` glyph-space widths (ISO 32000-1 §9.7.4.3),
 /// indexed by **CID** — an arbitrary font-internal identifier unrelated to
@@ -954,8 +955,8 @@ fn decode_with_encoding(text_bytes: &[u8], font_info: &FontInfo) -> ParseResult<
     for &byte in text_bytes {
         if let Some(ref differences) = font_info.differences {
             if let Some(char_name) = differences.get(&byte) {
-                if let Some(unicode_char) = glyph_name_to_unicode(char_name) {
-                    result.push(unicode_char);
+                if let Some(unicode) = glyph_name_to_unicode_sequence(char_name) {
+                    result.push_str(&unicode);
                     continue;
                 }
             }
@@ -974,15 +975,79 @@ fn decode_with_encoding(text_bytes: &[u8], font_info: &FontInfo) -> ParseResult<
     Ok(result)
 }
 
-/// Convert glyph name to Unicode character.
+/// Convert a glyph name to one Unicode character.
 ///
-/// Supports:
-/// - Single character glyph names (`name.chars().count() == 1`)
-/// - `uniXXXX` Unicode escapes (4 hex digits)
-/// - `uXXXX` / `uXXXXX` / `uXXXXXX` Unicode escapes (4..6 hex digits)
-/// - Complete Adobe Glyph List (AGL) mappings including Latin, accented letters,
-///   ligatures, punctuation, mathematical and typographical symbols.
+/// For glyph names that resolve to more than one Unicode scalar, use
+/// [`glyph_name_to_unicode_sequence`].
 pub fn glyph_name_to_unicode(name: &str) -> Option<char> {
+    let value = glyph_name_to_unicode_sequence(name)?;
+    let mut chars = value.chars();
+    match (chars.next(), chars.next()) {
+        (Some(character), None) => Some(character),
+        _ => None,
+    }
+}
+
+/// Convert a glyph name to its complete Unicode sequence.
+///
+/// The mapping uses Adobe's complete Glyph List. It also implements the
+/// `uniXXXX...` and `uXXXX` glyph-name conventions, including `uni` names
+/// containing multiple four-digit scalar values.
+pub fn glyph_name_to_unicode_sequence(name: &str) -> Option<String> {
+    if name.chars().count() == 1 {
+        return Some(name.to_owned());
+    }
+
+    let lookup_name = name.split_once('.').map_or(name, |(base, _)| base);
+    if lookup_name.is_empty() {
+        return None;
+    }
+
+    if let Some(hex) = lookup_name.strip_prefix("uni") {
+        if !hex.is_empty() && hex.len() % 4 == 0 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return decode_unicode_scalars(
+                hex.as_bytes()
+                    .chunks_exact(4)
+                    .map(|chunk| std::str::from_utf8(chunk).expect("ASCII hexadecimal glyph name")),
+            );
+        }
+    }
+
+    if let Some(hex) = lookup_name.strip_prefix('u') {
+        if (4..=6).contains(&hex.len()) && hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return decode_unicode_scalars(std::iter::once(hex));
+        }
+    }
+
+    adobe_glyph_list()
+        .get(lookup_name)
+        .and_then(|scalars| decode_unicode_scalars(scalars.split_whitespace()))
+        .or_else(|| {
+            legacy_glyph_name_to_unicode(lookup_name).map(|character| character.to_string())
+        })
+}
+
+fn decode_unicode_scalars<'a>(scalars: impl IntoIterator<Item = &'a str>) -> Option<String> {
+    let mut result = String::new();
+    for scalar in scalars {
+        let value = u32::from_str_radix(scalar, 16).ok()?;
+        result.push(char::from_u32(value)?);
+    }
+    (!result.is_empty()).then_some(result)
+}
+
+fn adobe_glyph_list() -> &'static HashMap<&'static str, &'static str> {
+    static GLYPHS: OnceLock<HashMap<&'static str, &'static str>> = OnceLock::new();
+    GLYPHS.get_or_init(|| {
+        include_str!("adobe_glyph_list.txt")
+            .lines()
+            .filter_map(|line| line.split_once(';'))
+            .collect()
+    })
+}
+
+fn legacy_glyph_name_to_unicode(name: &str) -> Option<char> {
     // 1. Single character glyph name (e.g., 'A', 'a', '1', '+')
     let mut chars = name.chars();
     if let (Some(c), None) = (chars.next(), chars.next()) {
