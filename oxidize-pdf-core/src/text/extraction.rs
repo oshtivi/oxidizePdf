@@ -3431,11 +3431,7 @@ pub(crate) fn hyphen_fusion_action(before: &str, next: &str) -> HyphenFusionActi
         (Some(b), Some(n)) if b.is_alphabetic() && n.is_alphabetic() => {
             HyphenFusionAction::DropHyphen
         }
-        (Some(b), Some(n))
-            if (b.is_ascii_digit() || n.is_ascii_digit())
-                && !b.is_whitespace()
-                && !n.is_whitespace() =>
-        {
+        (Some(b), Some(n)) if !b.is_whitespace() && !n.is_whitespace() => {
             HyphenFusionAction::KeepHyphen
         }
         _ => HyphenFusionAction::NoFusion,
@@ -4597,6 +4593,14 @@ mod tests {
             s2, "multithreaded",
             "soft hyphen popped for alphabetic words"
         );
+
+        // Punctuation is also part of structured identifiers, even when the
+        // adjoining fragments do not contain ASCII digits.
+        let mut s3 = String::from("foo/-");
+        let outcome3 = append_bounded(&mut s3, Some('\n'), "bar", None, &mut trunc, true);
+        assert!(outcome3.appended);
+        assert_eq!(outcome3.applied_separator, None);
+        assert_eq!(s3, "foo/-bar", "hyphen preserved after punctuation");
     }
 
     #[test]

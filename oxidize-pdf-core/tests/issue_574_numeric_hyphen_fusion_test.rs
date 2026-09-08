@@ -80,6 +80,17 @@ fn structured_identifier_preserves_hyphen_across_line_wrap() {
 }
 
 #[test]
+fn punctuation_identifier_preserves_hyphen_across_line_wrap() {
+    let content = concat!(
+        "BT\n/F1 10 Tf\n",
+        "1 0 0 1 100 700 Tm\n(foo/-) Tj\n",
+        "1 0 0 1 100 688 Tm\n(bar) Tj\nET"
+    );
+    let text = extract_flat(content);
+    assert_eq!(text.trim(), "foo/-bar");
+}
+
+#[test]
 fn alphabetic_words_fuse_and_drop_hyphen() {
     let content = concat!(
         "BT\n/F1 10 Tf\n",
