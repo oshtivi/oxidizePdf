@@ -37,7 +37,7 @@ pub use extraction::{
     sanitize_extracted_text, sanitize_extracted_text_with_policy, CarriageReturnHandling,
     ExtractedText, ExtractionOptions, TextExtractor, TextFragment,
 };
-pub use extraction_cmap::glyph_name_to_unicode;
+pub use extraction_cmap::{glyph_name_to_unicode, glyph_name_to_unicode_sequence};
 pub use flow::{TextAlign, TextFlowContext};
 pub use font::{Font, FontEncoding, FontFamily, FontWithEncoding};
 pub use font_manager::{CustomFont, FontDescriptor, FontFlags, FontManager, FontMetrics, FontType};
