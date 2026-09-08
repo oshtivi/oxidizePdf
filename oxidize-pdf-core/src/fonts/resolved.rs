@@ -717,7 +717,7 @@ fn be_code(code: &[u8]) -> ParseResult<u32> {
 }
 
 fn glyph_name_to_unicode(name: &str) -> Option<String> {
-    crate::text::extraction_cmap::glyph_name_to_unicode(name).map(|c| c.to_string())
+    crate::text::extraction_cmap::glyph_name_to_unicode_sequence(name)
 }
 
 fn symbol_code_to_unicode(code: u8) -> Option<&'static str> {
